@@ -223,9 +223,9 @@ class ControlBar(ctk.CTkFrame):
             fg_color=Colors.PRIMARY,
             hover_color=Colors.PRIMARY_HOVER,
             text_color=Colors.TEXT_PRIMARY,
-            width=48,
-            height=48,
-            corner_radius=24,
+            width=30,
+            height=30,
+            corner_radius=20,
             command=self._handle_start,
         )
         self._start_btn.pack(side="left")
@@ -240,10 +240,24 @@ class ControlBar(ctk.CTkFrame):
             fg_color=Colors.STATUS_ERROR,
             hover_color="#b91c1c",
             text_color=Colors.TEXT_PRIMARY,
-            width=48,
-            height=48,
-            corner_radius=24,
+            width=30,
+            height=30,
+            corner_radius=20,
             command=self._handle_stop,
+        )
+        
+        # Pause button (shown when running)
+        self._pause_btn = ctk.CTkButton(
+            controls,
+            text="⏸",
+            font=(Fonts.FAMILY, 20),
+            fg_color=Colors.PRIMARY,
+            hover_color=Colors.PRIMARY_HOVER,
+            text_color=Colors.TEXT_PRIMARY,
+            width=30,
+            height=30,
+            corner_radius=20,
+            command=self._handle_pause,
         )
         
     def _build_progress(self):
@@ -357,10 +371,15 @@ class ControlBar(ctk.CTkFrame):
         if self._on_toggle_logs:
             self._on_toggle_logs()
             
-    def set_callbacks(self, on_start=None, on_stop=None, on_toggle_logs=None):
+    def _handle_pause(self):
+        if self._on_pause:
+            self._on_pause()
+            
+    def set_callbacks(self, on_start=None, on_stop=None, on_toggle_logs=None, on_pause=None):
         self._on_start = on_start
         self._on_stop = on_stop
         self._on_toggle_logs = on_toggle_logs
+        self._on_pause = on_pause
 
     def set_start_enabled(self, enabled: bool, disabled_tooltip: str = ""):
         if enabled:
@@ -385,8 +404,11 @@ class ControlBar(ctk.CTkFrame):
         if running:
             self._start_btn.pack_forget()
             self._stop_btn.pack(side="left")
+            self._pause_btn.pack(side="left", padx=(6, 0))
+            self._pause_btn.configure(text="⏸" if not paused else "▶")
         else:
             self._stop_btn.pack_forget()
+            self._pause_btn.pack_forget()
             self._start_btn.pack(side="left")
             
     def update_progress(
