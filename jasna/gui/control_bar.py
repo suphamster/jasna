@@ -202,6 +202,7 @@ class ControlBar(ctk.CTkFrame):
         self._on_start: callable = None
         self._on_stop: callable = None
         self._on_toggle_logs: callable = None
+        self._on_pause: callable = None
         self._start_disabled_tooltip = None
         
         self._is_running = False
@@ -223,9 +224,9 @@ class ControlBar(ctk.CTkFrame):
             fg_color=Colors.PRIMARY,
             hover_color=Colors.PRIMARY_HOVER,
             text_color=Colors.TEXT_PRIMARY,
-            width=30,
-            height=30,
-            corner_radius=20,
+            width=48,
+            height=48,
+            corner_radius=24,
             command=self._handle_start,
         )
         self._start_btn.pack(side="left")
@@ -240,9 +241,9 @@ class ControlBar(ctk.CTkFrame):
             fg_color=Colors.STATUS_ERROR,
             hover_color="#b91c1c",
             text_color=Colors.TEXT_PRIMARY,
-            width=30,
-            height=30,
-            corner_radius=20,
+            width=48,
+            height=48,
+            corner_radius=24,
             command=self._handle_stop,
         )
         
@@ -254,9 +255,9 @@ class ControlBar(ctk.CTkFrame):
             fg_color=Colors.PRIMARY,
             hover_color=Colors.PRIMARY_HOVER,
             text_color=Colors.TEXT_PRIMARY,
-            width=30,
-            height=30,
-            corner_radius=20,
+            width=48,
+            height=48,
+            corner_radius=24,
             command=self._handle_pause,
         )
         
