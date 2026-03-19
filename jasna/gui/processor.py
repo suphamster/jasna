@@ -61,8 +61,6 @@ class Processor:
         self._real_processing_start_time: float | None = None
         self._total_pause_time: float = 0.0
         self._pause_start_time: float | None = None
-        self._last_fps_update_time: float | None = None
-        self._accumulated_processing_time: float = 0.0
         
     def start(
         self,
@@ -82,6 +80,11 @@ class Processor:
         self._output_pattern = output_pattern
         self._disable_basicvsrpp_tensorrt_for_run = bool(disable_basicvsrpp_tensorrt)
         
+        # Reset timing tracking for new job
+        self._real_processing_start_time = time.monotonic()
+        self._total_pause_time = 0.0
+        self._pause_start_time = None
+        
         self._stop_event.clear()
         self._pause_event.set()
         
@@ -92,27 +95,14 @@ class Processor:
         if self._pause_event.is_set():
             self._pause_event.clear()
             # Start tracking pause time
-            self._pause_start_time = time.time()
+            self._pause_start_time = time.monotonic()
         else:
             self._pause_event.set()
             # Calculate and add pause duration to total
             if self._pause_start_time is not None:
-                pause_duration = time.time() - self._pause_start_time
+                pause_duration = time.monotonic() - self._pause_start_time
                 self._total_pause_time += pause_duration
                 self._pause_start_time = None
-            
-    def _update_accumulated_time(self):
-        """Update accumulated processing time since last pause."""
-        if self._real_processing_start_time is not None and not self.is_paused():
-            current_time = time.time()
-            # Only accumulate time when not paused
-            if self._last_fps_update_time is not None:
-                elapsed = current_time - self._last_fps_update_time
-                self._accumulated_processing_time += elapsed
-            else:
-                # First update, initialize accumulated time
-                self._accumulated_processing_time = current_time - self._real_processing_start_time
-            self._last_fps_update_time = current_time
             
     def is_paused(self) -> bool:
         return not self._pause_event.is_set()
@@ -121,7 +111,7 @@ class Processor:
         """Get the actual processing time excluding pause duration."""
         if self._real_processing_start_time is None:
             return 0.0
-        current_time = time.time()
+        current_time = time.monotonic()
         total_elapsed = current_time - self._real_processing_start_time
         return total_elapsed - self._total_pause_time
         
@@ -310,13 +300,12 @@ class Processor:
 
 
             # Initialize timing variables for this job
-            job_start_time = time.time()
-            accumulated_processing_time = 0.0
+            job_start_time = time.monotonic()
             last_update_time = 0.0
             pause_start_time = None
 
             def get_real_processing_time():
-                current_time = time.time()
+                current_time = time.monotonic()
                 total_elapsed = current_time - job_start_time
                 # Subtract any current pause duration if paused
                 if pause_start_time is not None:
@@ -326,9 +315,9 @@ class Processor:
                     return total_elapsed - self._total_pause_time
 
             def progress_callback(progress_pct: float, fps: float, eta_seconds: float, frames_done: int, total: int):
-                nonlocal last_update_time, accumulated_processing_time, pause_start_time
+                nonlocal last_update_time, pause_start_time
                 
-                current_time = time.time()
+                current_time = time.monotonic()
                 if current_time - last_update_time < 0.1:
                     return
                 last_update_time = current_time
