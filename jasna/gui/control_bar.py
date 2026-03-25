@@ -403,14 +403,20 @@ class ControlBar(ctk.CTkFrame):
         self._is_running = running
         
         if running:
-            self._start_btn.pack_forget()
-            self._stop_btn.pack(side="left")
-            self._pause_btn.pack(side="left", padx=(6, 0))
+            if self._start_btn.winfo_ismapped():
+                self._start_btn.pack_forget()
+            if not self._stop_btn.winfo_ismapped():
+                self._stop_btn.pack(side="left")
+            if not self._pause_btn.winfo_ismapped():
+                self._pause_btn.pack(side="left", padx=(6, 0))
             self._pause_btn.configure(text="⏸" if not paused else "▶")
         else:
-            self._stop_btn.pack_forget()
-            self._pause_btn.pack_forget()
-            self._start_btn.pack(side="left")
+            if self._stop_btn.winfo_ismapped():
+                self._stop_btn.pack_forget()
+            if self._pause_btn.winfo_ismapped():
+                self._pause_btn.pack_forget()
+            if not self._start_btn.winfo_ismapped():
+                self._start_btn.pack(side="left")
             
     def update_progress(
         self,
