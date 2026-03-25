@@ -458,11 +458,7 @@ class JasnaApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def _handle_complete(self):
         self._status_pill.set_status("IDLE", Colors.STATUS_PENDING)
         # Use processor's real processing time that excludes pause durations
-        if self._processor and hasattr(self._processor, 'get_real_processing_time'):
-            elapsed_seconds = self._processor.get_real_processing_time()
-        else:
-            # Fallback to wall clock time if processor method is not available
-            elapsed_seconds = time.time() - self._processing_start_time if self._processing_start_time else 0.0
+        elapsed_seconds = self._processor.get_real_processing_time() if self._processor else 0.0
         self._control_bar.set_completed(elapsed_seconds)
         self._update_start_button_state()
         self._log_panel.info("All jobs completed")
