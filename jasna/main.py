@@ -218,13 +218,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--codec",
         type=str,
         default="hevc",
-        help='Output video codec (only "hevc" supported for now)',
-    )
-    encoding.add_argument(
-        "--encoder-settings",
-        type=str,
-        default="",
-        help='Encoder settings, as JSON object or comma-separated key=value pairs (e.g. {"cq":22} or cq=22,lookahead=32)',
+        choices=["h264", "hevc", "av1"],
+        help='Output video codec: h264 (8-bit), hevc (10-bit), av1 (8-bit) (default: %(default)s)',
     )
     encoding.add_argument(
         "--working-directory",
@@ -315,8 +310,6 @@ def main() -> None:
         raise FileNotFoundError(str(restoration_model_path))
 
     codec = str(args.codec).lower()
-    if codec != "hevc":
-        raise ValueError(f"Unsupported codec: {codec} (only hevc supported)")
 
     encoder_settings = validate_encoder_settings(parse_encoder_settings(str(args.encoder_settings)))
 
@@ -416,7 +409,7 @@ def main() -> None:
         def _make_pipeline(vid_input: Path) -> Pipeline:
             return Pipeline(
                 input_video=vid_input,
-                output_video=output_video or vid_input.with_stem(vid_input.stem + "_out"),
+                output_video=vid_input.with_stem(vid_input.stem + "_out"),
                 detection_model_name=detection_model_name,
                 detection_model_path=detection_model_path,
                 detection_score_threshold=detection_score_threshold,
