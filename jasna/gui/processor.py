@@ -373,8 +373,6 @@ class Processor:
             for _ in range(3):
                 gc.collect()
 
-            from jasna.tracking.blending import _KERNEL_CACHE
-            _KERNEL_CACHE.clear()
             from jasna.media.rgb_to_p010 import _cache as _p010_cache
             _p010_cache.clear()
 
