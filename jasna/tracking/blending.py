@@ -9,21 +9,32 @@ BLEND_DILATION_RATIO = 0.028
 BLEND_FALLOFF_RATIO = 0.028
 
 
-def _box_blur(x: torch.Tensor, kernel_size: int) -> torch.Tensor:
-    # Separable box blur: a uniform KxK kernel = 1xK then Kx1, cost O(K^2) -> O(2K).
-    cache_key = (str(x.device), x.dtype, kernel_size)
+def _box_kernels(device: torch.device, dtype: torch.dtype, kernel_size: int) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return cached separable 1D box-blur kernels (horizontal, vertical).
+
+    A K×K uniform kernel (value 1/K²) is the outer product of two 1D uniform
+    kernels of value 1/K, so the 2D box blur factors into a horizontal pass
+    (1×K) followed by a vertical pass (K×1).
+    """
+    cache_key = (str(device), dtype, kernel_size)
     kernels = _KERNEL_CACHE.get(cache_key)
     if kernels is None:
-        kernel_h = torch.ones((1, 1, 1, kernel_size), device=x.device, dtype=x.dtype) / kernel_size
-        kernel_v = torch.ones((1, 1, kernel_size, 1), device=x.device, dtype=x.dtype) / kernel_size
-        kernels = (kernel_h, kernel_v)
+        kh = torch.ones((1, 1, 1, kernel_size), device=device, dtype=dtype) / kernel_size
+        kv = torch.ones((1, 1, kernel_size, 1), device=device, dtype=dtype) / kernel_size
+        kernels = (kh, kv)
         _KERNEL_CACHE[cache_key] = kernels
-    kernel_h, kernel_v = kernels
+    return kernels
+
+
+def _box_blur(x: torch.Tensor, kernel_size: int) -> torch.Tensor:
+    # Separable box blur: O(2K) per pixel instead of O(K²) for the dense conv2d.
+    # Pad once in 2D (reflect) then run two "valid" 1D convolutions, which is
+    # numerically identical to padding + a single dense K×K conv2d.
+    kh, kv = _box_kernels(x.device, x.dtype, kernel_size)
     pad = kernel_size // 2
     x4d = F.pad(x.unsqueeze(0).unsqueeze(0), (pad, pad, pad, pad), mode="reflect")
-    x4d = F.conv2d(x4d, kernel_h)
-    x4d = F.conv2d(x4d, kernel_v)
-    return x4d.squeeze(0).squeeze(0)
+    blurred = F.conv2d(F.conv2d(x4d, kh), kv)
+    return blurred.squeeze(0).squeeze(0)
 
 
 def _make_odd(n: int) -> int:
